@@ -101,95 +101,6 @@ bool is_file_exist(std::string fileName)
     return infile.good();
 }
 
-StatisticalModelType* buildSSM (std::string datadir, std::string filenamereference)
-{
-    StringVectorType filenames;
-    getdir(datadir, filenames, ".vtk");
-    if (filenames.size() == 0) {
-        std::cerr << "did not find any vtk files in directory " << datadir << " exiting.";
-    exit(-1);
-    }
-
-    std::cout << "Building SSM of data in " << datadir << std::endl;
-    vtkPolyData* reference = loadVTKPolyData(filenamereference);
-    boost::scoped_ptr<RepresenterType> representer(RepresenterType::Create(reference));
-    // We create a datamanager and provide it with a pointer to the representer
-    boost::scoped_ptr<DataManagerType> dataManager(DataManagerType::Create(representer.get()));
-
-    for (unsigned i = 0; i < filenames.size() ; i++)
-    {
-        vtkPolyData* dataset = loadVTKPolyData(datadir + "/" + filenames[i]);
-        // We provde the filename as a second argument.
-        // It will be written as metadata, and allows us to more easily figure out what we did later.
-        dataManager->AddDataset(dataset, filenames[i]);
-        // it is save to delete the dataset after it was added, as the datamanager direclty copies it.
-        dataset->Delete();
-    }
-    // To actually build a model, we need to create a model builder object.
-    // Calling the build model with a list of samples from the data manager, returns a new model.
-    // The second parameter to BuildNewModel is the variance of the noise on our data
-    ModelBuilderType* modelBuilder = ModelBuilderType::Create();
-    StatisticalModelType* model = modelBuilder->BuildNewModel(dataManager->GetData(), 0.01);
-
-    std::cout << "Total variance " << model->GetPCAVarianceVector().sum() << " number of Eigenmodes " << model->GetPCAVarianceVector().size() << std::endl;
-    return model;
-}
-
-StatisticalModelType* buildSSMCrossvalidation (std::string datadir, std::string filenamereference, std::string filename)
-{
-    StringVectorType filenames;
-    getdir(datadir, filenames, ".vtk");
-    if (filenames.size() == 0) {
-        std::cerr << "did not find any vtk files in directory " << datadir << " exiting.";
-    exit(-1);
-    }
-
-  //  std::cout << "Building SSM of data in " << datadir << std::endl;
-    vtkPolyData* reference = loadVTKPolyData(filenamereference);
-    boost::scoped_ptr<RepresenterType> representer(RepresenterType::Create(reference));
-    // We create a datamanager and provide it with a pointer to the representer
-    boost::scoped_ptr<DataManagerType> dataManager(DataManagerType::Create(representer.get()));
-
-    for (unsigned i = 0; i < filenames.size() ; i++)
-    {
-        if (filename.compare(filenames[i]) != 0)
-        {
-            vtkPolyData* dataset = loadVTKPolyData(datadir + "/" + filenames[i]);
-            // We provde the filename as a second argument.
-            // It will be written as metadata, and allows us to more easily figure out what we did later.
-            dataManager->AddDataset(dataset, filenames[i]);
-            // it is save to delete the dataset after it was added, as the datamanager direclty copies it.
-            dataset->Delete();
-        }
-
-    }
-    // To actually build a model, we need to create a model builder object.
-    // Calling the build model with a list of samples from the data manager, returns a new model.
-    // The second parameter to BuildNewModel is the variance of the noise on our data
-    ModelBuilderType* modelBuilder = ModelBuilderType::Create();
-    StatisticalModelType* model = modelBuilder->BuildNewModel(dataManager->GetData(), 0.01);
-
-  //  std::cout << "Total variance " << model->GetPCAVarianceVector().sum() << " number of Eigenmodes " << model->GetPCAVarianceVector().size() << std::endl;
-    return model;
-}
-
-void analyzeVariance (StatisticalModelType* model)
-{
-    VectorType PCAVariance = model->GetPCAVarianceVector();
-    double totalVar = model->GetPCAVarianceVector().sum();
-    std::cout << "### Model variance analysis , total variance " << totalVar << "###"<< std::endl;
-
-    int sum =0;
-    double per = 0;
-    for (int i = 0 ; i < PCAVariance.size() ; i++)
-    {
-        sum = sum + PCAVariance[i];
-        double percentage = (PCAVariance[i] * 100) / totalVar;
-        per = per + percentage;
-        std::cout << "Eigenvalue " << i << " variance " << PCAVariance[i] << " (" << percentage <<" / " << per << ")" << std::endl;
-    }
-}
-
 double ComputeOAindex (vtkPoints* diff)
 {
 
@@ -395,7 +306,7 @@ int main (int argc, char ** argv)
     outputOAindexAll.close();
 
     std::ofstream outputOAindex;
-    outputOAindex.open( "/NIRAL/projects5/CMF/TMJR01/OAIndex/Code/Data/avgAnalysis/OAindex_groups.csv" );
+    outputOAindex.open( "/NIRAL/projects5/CMF/TMJR01/OAIndex/Code/Data/aAnalysis/OAindex_groups.csv" );
     outputOAindex << "subjectID,OAindex,GroupAssignment,GroupReal,Classification" << std::endl;
 
     int missclassifications = 0;
